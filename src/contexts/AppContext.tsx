@@ -54,236 +54,282 @@ const initialAccounts: Account[] = [
 
 const generateYearOfTransactions = (): Transaction[] => {
   const transactions: Transaction[] = []
-  const currentYear = new Date().getFullYear()
+  const startDate = new Date(2024, 6, 1) // July 1, 2024
+  const endDate = new Date(2025, 7, 7) // August 7, 2025
   
-  const accounts = ['Chase Checking', 'Chase Savings', 'Credit Card']
+  // Helper function to check if date is a holiday season
+  const isHolidaySeason = (month: number): boolean => {
+    return month === 10 || month === 11 // November & December (holiday shopping)
+  }
   
-  // Regular income transactions (bi-weekly salary + monthly freelance)
-  for (let month = 0; month < 12; month++) {
-    // Bi-weekly salary (26 payments per year)
-    const payDates = [7, 21] // 7th and 21st of each month
-    payDates.forEach(day => {
-      if (month < 11 || day <= 15) { // Don't go into future
+  const isSummer = (month: number): boolean => {
+    return month === 5 || month === 6 || month === 7 // June, July, August (vacation/outdoor spending)
+  }
+  
+  // Generate transactions month by month from July 2024 to August 2025
+  let currentDate = new Date(startDate)
+  
+  while (currentDate <= endDate) {
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth()
+    const monthName = currentDate.toLocaleDateString('en-US', { month: 'long' })
+    
+    // Skip if we're past August 7, 2025
+    if (year === 2025 && month === 7 && currentDate.getDate() > 7) break
+    
+    // INCOME - Bi-weekly salary (every other Friday)
+    const salaryDates = []
+    let salaryDate = new Date(year, month, 1)
+    // Find Fridays
+    while (salaryDate.getMonth() === month) {
+      if (salaryDate.getDay() === 5) { // Friday
+        salaryDates.push(new Date(salaryDate))
+      }
+      salaryDate.setDate(salaryDate.getDate() + 1)
+    }
+    
+    // Add every other Friday as payday
+    salaryDates.forEach((date, index) => {
+      if (index % 2 === 0) {
         transactions.push({
-          id: `salary-${month}-${day}`,
+          id: `salary-${year}-${month}-${index}`,
           accountId: 'Chase Checking',
-          description: 'Salary Deposit - Tech Corp',
-          amount: 3200 + Math.random() * 300, // $3200-3500
+          description: 'Salary Direct Deposit - TechCorp',
+          amount: 3200 + Math.random() * 400, // $3200-3600
           category: 'Income',
-          date: new Date(currentYear, month, day),
+          date: new Date(date),
           type: 'income'
         })
       }
     })
     
-    // Monthly freelance income (varying)
-    if (Math.random() > 0.3) { // 70% chance each month
+    // Girlfriend's part-time income (freelance design work)
+    if (Math.random() > 0.4) { // 60% chance per month
       transactions.push({
-        id: `freelance-${month}`,
+        id: `gf-income-${year}-${month}`,
         accountId: 'Chase Checking',
-        description: 'Freelance Web Development',
-        amount: 400 + Math.random() * 1200, // $400-1600
+        description: 'Freelance Design Payment - Sarah',
+        amount: 800 + Math.random() * 1200, // $800-2000
         category: 'Income',
-        date: new Date(currentYear, month, Math.floor(Math.random() * 28) + 1),
+        date: new Date(year, month, 15 + Math.floor(Math.random() * 10)),
         type: 'income'
       })
     }
-  }
-  
-  // Regular monthly expenses
-  const monthlyExpenses = [
-    { description: 'Rent Payment', amount: -2400, category: 'Housing', account: 'Chase Checking' },
-    { description: 'Electric Bill', amount: -85 - Math.random() * 40, category: 'Utilities', account: 'Chase Checking' },
-    { description: 'Internet Service', amount: -79.99, category: 'Utilities', account: 'Chase Checking' },
-    { description: 'Phone Bill', amount: -65 - Math.random() * 15, category: 'Utilities', account: 'Chase Checking' },
-    { description: 'Car Insurance', amount: -142, category: 'Transportation', account: 'Chase Checking' },
-    { description: 'Health Insurance', amount: -320, category: 'Healthcare', account: 'Chase Checking' },
-    { description: 'Gym Membership', amount: -29.99, category: 'Health & Fitness', account: 'Chase Checking' },
-  ]
-  
-  for (let month = 0; month < 12; month++) {
-    monthlyExpenses.forEach((expense, index) => {
+    
+    // HOUSING & UTILITIES
+    const monthlyFixedExpenses = [
+      { desc: 'Rent - Downtown Apartment', amount: -2800, cat: 'Housing', day: 1 },
+      { desc: 'Renters Insurance', amount: -45, cat: 'Housing', day: 1 },
+      { desc: 'Electric & Gas Bill', amount: -(120 + Math.random() * 80), cat: 'Utilities', day: 5 },
+      { desc: 'Internet - Xfinity', amount: -89.99, cat: 'Utilities', day: 12 },
+      { desc: 'Phone Plan - Verizon (2 lines)', amount: -135, cat: 'Utilities', day: 18 },
+    ]
+    
+    monthlyFixedExpenses.forEach((expense, idx) => {
+      // Skip future dates
+      const expenseDate = new Date(year, month, expense.day)
+      if (expenseDate <= endDate) {
+        transactions.push({
+          id: `fixed-${year}-${month}-${idx}`,
+          accountId: 'Chase Checking',
+          description: expense.desc,
+          amount: expense.amount,
+          category: expense.cat,
+          date: expenseDate,
+          type: 'expense'
+        })
+      }
+    })
+    
+    // TRANSPORTATION
+    transactions.push({
+      id: `car-insurance-${year}-${month}`,
+      accountId: 'Chase Checking',
+      description: 'State Farm Auto Insurance',
+      amount: -165,
+      category: 'Transportation',
+      date: new Date(year, month, 8),
+      type: 'expense'
+    })
+    
+    // Gas - more in summer (road trips)
+    const gasFrequency = isSummer(month) ? 4 : 3
+    for (let i = 0; i < gasFrequency; i++) {
       transactions.push({
-        id: `monthly-${month}-${index}`,
-        accountId: expense.account,
-        description: expense.description,
-        amount: typeof expense.amount === 'number' ? expense.amount : expense.amount,
-        category: expense.category,
-        date: new Date(currentYear, month, Math.floor(Math.random() * 5) + 1), // First 5 days of month
+        id: `gas-${year}-${month}-${i}`,
+        accountId: Math.random() > 0.3 ? 'Credit Card' : 'Chase Checking',
+        description: ['Shell', 'Chevron', 'Costco Gas', '76'][Math.floor(Math.random() * 4)],
+        amount: -(45 + Math.random() * 35), // $45-80
+        category: 'Transportation',
+        date: new Date(year, month, Math.floor(Math.random() * 28) + 1),
         type: 'expense'
       })
+    }
+    
+    // DOG EXPENSES (2 dogs - monthly costs)
+    const dogExpenses = [
+      { desc: 'Chewy.com - Dog Food & Supplies', amount: -(80 + Math.random() * 40), cat: 'Other' },
+      { desc: 'VCA Animal Hospital', amount: -(120 + Math.random() * 200), cat: 'Healthcare', chance: 0.3 }, // 30% chance
+      { desc: 'PetSmart - Dog Toys/Treats', amount: -(25 + Math.random() * 35), cat: 'Other', chance: 0.7 },
+      { desc: 'Dog Grooming - Petco', amount: -(85 + Math.random() * 45), cat: 'Other', chance: 0.4 }
+    ]
+    
+    dogExpenses.forEach((expense, idx) => {
+      if (!expense.chance || Math.random() < expense.chance) {
+        transactions.push({
+          id: `dog-${year}-${month}-${idx}`,
+          accountId: Math.random() > 0.5 ? 'Credit Card' : 'Chase Checking',
+          description: expense.desc,
+          amount: expense.amount,
+          category: expense.cat,
+          date: new Date(year, month, Math.floor(Math.random() * 28) + 1),
+          type: 'expense'
+        })
+      }
     })
-  }
-  
-  // Subscription services
-  const subscriptions = [
-    { name: 'Netflix', amount: -15.99, day: 8 },
-    { name: 'Spotify Premium', amount: -9.99, day: 12 },
-    { name: 'Adobe Creative Cloud', amount: -52.99, day: 15 },
-    { name: 'iCloud Storage', amount: -2.99, day: 20 },
-    { name: 'Disney+', amount: -7.99, day: 25 }
-  ]
-  
-  for (let month = 0; month < 12; month++) {
-    subscriptions.forEach((sub, index) => {
+    
+    // GROCERIES & DINING (couple lifestyle)
+    // Weekly grocery shopping - higher amounts for 2 people + 2 dogs
+    for (let week = 0; week < 4; week++) {
+      const groceryDay = week * 7 + Math.floor(Math.random() * 7) + 1
+      if (groceryDay <= 28) {
+        transactions.push({
+          id: `grocery-${year}-${month}-${week}`,
+          accountId: Math.random() > 0.4 ? 'Credit Card' : 'Chase Checking',
+          description: ['Whole Foods', 'Trader Joes', 'Safeway', 'Costco'][Math.floor(Math.random() * 4)],
+          amount: -(130 + Math.random() * 120), // $130-250 (for 2 people + dogs)
+          category: 'Food & Dining',
+          date: new Date(year, month, groceryDay),
+          type: 'expense'
+        })
+      }
+    }
+    
+    // Date nights & restaurants (2-3 times per month)
+    const dateNights = Math.floor(Math.random() * 2) + 2 // 2-3 times
+    for (let i = 0; i < dateNights; i++) {
       transactions.push({
-        id: `sub-${month}-${index}`,
+        id: `datenight-${year}-${month}-${i}`,
+        accountId: Math.random() > 0.6 ? 'Credit Card' : 'Chase Checking',
+        description: ['Italian Bistro', 'Sushi Restaurant', 'Steakhouse', 'Thai Place', 'Mexican Grill', 'Wine Bar'][Math.floor(Math.random() * 6)],
+        amount: -(65 + Math.random() * 85), // $65-150 (dinner for 2)
+        category: 'Food & Dining',
+        date: new Date(year, month, Math.floor(Math.random() * 28) + 1),
+        type: 'expense'
+      })
+    }
+    
+    // Coffee & quick meals
+    const coffeeVisits = 8 + Math.floor(Math.random() * 6) // 8-14 times per month
+    for (let i = 0; i < coffeeVisits; i++) {
+      transactions.push({
+        id: `coffee-${year}-${month}-${i}`,
+        accountId: 'Chase Checking',
+        description: ['Starbucks', 'Local Coffee Shop', 'Blue Bottle', 'Dunkin'][Math.floor(Math.random() * 4)],
+        amount: -(8 + Math.random() * 15), // $8-23
+        category: 'Food & Dining',
+        date: new Date(year, month, Math.floor(Math.random() * 28) + 1),
+        type: 'expense'
+      })
+    }
+    
+    // SUBSCRIPTIONS & ENTERTAINMENT
+    const subscriptions = [
+      { name: 'Netflix', amount: -15.99, day: 8 },
+      { name: 'Spotify Premium Duo', amount: -12.99, day: 12 },
+      { name: 'Amazon Prime', amount: -14.98, day: 15 },
+      { name: 'Adobe Creative Suite', amount: -52.99, day: 20 },
+      { name: 'Disney+ Bundle', amount: -19.99, day: 25 },
+      { name: 'Gym Membership (2 people)', amount: -89.99, day: 3 }
+    ]
+    
+    subscriptions.forEach((sub, idx) => {
+      transactions.push({
+        id: `sub-${year}-${month}-${idx}`,
         accountId: 'Credit Card',
-        description: `${sub.name} Subscription`,
+        description: sub.name,
         amount: sub.amount,
         category: 'Entertainment',
-        date: new Date(currentYear, month, sub.day),
+        date: new Date(year, month, sub.day),
         type: 'expense'
       })
     })
-  }
-  
-  // Weekly grocery shopping
-  for (let month = 0; month < 12; month++) {
-    for (let week = 0; week < 4; week++) {
-      transactions.push({
-        id: `grocery-${month}-${week}`,
-        accountId: Math.random() > 0.5 ? 'Credit Card' : 'Chase Checking',
-        description: ['Whole Foods', 'Trader Joes', 'Safeway', 'Target Grocery'][Math.floor(Math.random() * 4)],
-        amount: -(80 + Math.random() * 120), // $80-200
-        category: 'Food & Dining',
-        date: new Date(currentYear, month, (week * 7) + Math.floor(Math.random() * 3) + 1),
-        type: 'expense'
-      })
+    
+    // SEASONAL SHOPPING
+    let shoppingMultiplier = 1
+    let shoppingDescription = ['Amazon Purchase', 'Target', 'Best Buy', 'Macys']
+    
+    if (isHolidaySeason(month)) {
+      shoppingMultiplier = 2.5 // Much more holiday shopping
+      shoppingDescription = ['Christmas Gifts - Amazon', 'Holiday Shopping - Mall', 'Gift Cards - Target', 'Black Friday Deals']
+    } else if (isSummer(month)) {
+      shoppingMultiplier = 1.3 // More summer activities
+      shoppingDescription = ['Summer Gear - REI', 'Beach Supplies', 'BBQ Equipment', 'Outdoor Furniture']
     }
-  }
-  
-  // Restaurants and coffee (2-4 times per week)
-  for (let month = 0; month < 12; month++) {
-    for (let week = 0; week < 4; week++) {
-      // Coffee shops
-      for (let coffee = 0; coffee < 2; coffee++) {
-        transactions.push({
-          id: `coffee-${month}-${week}-${coffee}`,
-          accountId: 'Chase Checking',
-          description: ['Starbucks', 'Blue Bottle Coffee', 'Local Cafe', 'Peets Coffee'][Math.floor(Math.random() * 4)],
-          amount: -(3 + Math.random() * 8), // $3-11
-          category: 'Food & Dining',
-          date: new Date(currentYear, month, (week * 7) + Math.floor(Math.random() * 7) + 1),
-          type: 'expense'
-        })
-      }
-      
-      // Restaurants
-      if (Math.random() > 0.3) { // 70% chance per week
-        transactions.push({
-          id: `restaurant-${month}-${week}`,
-          accountId: Math.random() > 0.6 ? 'Credit Card' : 'Chase Checking',
-          description: ['Italian Restaurant', 'Sushi Bar', 'Mexican Food', 'Pizza Place', 'Burger Joint', 'Thai Restaurant'][Math.floor(Math.random() * 6)],
-          amount: -(25 + Math.random() * 75), // $25-100
-          category: 'Food & Dining',
-          date: new Date(currentYear, month, (week * 7) + Math.floor(Math.random() * 7) + 1),
-          type: 'expense'
-        })
-      }
-    }
-  }
-  
-  // Gas and transportation (2-3 times per month)
-  for (let month = 0; month < 12; month++) {
-    for (let gas = 0; gas < 3; gas++) {
-      if (Math.random() > 0.2) { // 80% chance
-        transactions.push({
-          id: `gas-${month}-${gas}`,
-          accountId: Math.random() > 0.7 ? 'Credit Card' : 'Chase Checking',
-          description: ['Shell Gas Station', 'Chevron', '76 Gas', 'Costco Gas'][Math.floor(Math.random() * 4)],
-          amount: -(35 + Math.random() * 45), // $35-80
-          category: 'Transportation',
-          date: new Date(currentYear, month, Math.floor(Math.random() * 28) + 1),
-          type: 'expense'
-        })
-      }
-    }
-  }
-  
-  // Shopping (clothing, electronics, etc.)
-  for (let month = 0; month < 12; month++) {
+    
     // Regular shopping
-    for (let shop = 0; shop < 2; shop++) {
-      if (Math.random() > 0.4) { // 60% chance
+    const shoppingTrips = Math.floor((2 + Math.random() * 3) * shoppingMultiplier) // 2-5 trips, more in holidays
+    for (let i = 0; i < shoppingTrips; i++) {
+      transactions.push({
+        id: `shopping-${year}-${month}-${i}`,
+        accountId: 'Credit Card',
+        description: shoppingDescription[Math.floor(Math.random() * shoppingDescription.length)],
+        amount: -(40 + Math.random() * 160) * (isHolidaySeason(month) ? 1.5 : 1), // Higher amounts during holidays
+        category: 'Shopping',
+        date: new Date(year, month, Math.floor(Math.random() * 28) + 1),
+        type: 'expense'
+      })
+    }
+    
+    // HEALTHCARE
+    if (Math.random() > 0.7) { // 30% chance
+      transactions.push({
+        id: `health-${year}-${month}`,
+        accountId: Math.random() > 0.5 ? 'Credit Card' : 'Chase Checking',
+        description: ['Doctor Visit', 'Dentist Checkup', 'Pharmacy - CVS', 'Urgent Care'][Math.floor(Math.random() * 4)],
+        amount: -(35 + Math.random() * 185), // $35-220
+        category: 'Healthcare',
+        date: new Date(year, month, Math.floor(Math.random() * 28) + 1),
+        type: 'expense'
+      })
+    }
+    
+    // SEASONAL ACTIVITIES
+    if (isSummer(month)) {
+      // Summer activities
+      if (Math.random() > 0.6) {
         transactions.push({
-          id: `shopping-${month}-${shop}`,
-          accountId: Math.random() > 0.5 ? 'Credit Card' : 'Chase Checking',
-          description: ['Amazon Purchase', 'Target', 'Best Buy', 'Macys', 'REI', 'Apple Store'][Math.floor(Math.random() * 6)],
-          amount: -(20 + Math.random() * 200), // $20-220
-          category: 'Shopping',
-          date: new Date(currentYear, month, Math.floor(Math.random() * 28) + 1),
+          id: `summer-${year}-${month}`,
+          accountId: 'Credit Card',
+          description: ['Concert Tickets', 'Baseball Game', 'Beach Trip', 'Camping Gear'][Math.floor(Math.random() * 4)],
+          amount: -(85 + Math.random() * 165), // $85-250
+          category: 'Entertainment',
+          date: new Date(year, month, Math.floor(Math.random() * 28) + 1),
           type: 'expense'
         })
       }
     }
     
-    // Bigger purchases occasionally
-    if (Math.random() > 0.85) { // 15% chance per month
+    if (month === 1) { // February - Valentine's Day
       transactions.push({
-        id: `big-purchase-${month}`,
+        id: `valentines-${year}`,
         accountId: 'Credit Card',
-        description: ['New Laptop', 'iPhone', 'Winter Coat', 'Furniture', 'TV', 'Kitchen Appliance'][Math.floor(Math.random() * 6)],
-        amount: -(300 + Math.random() * 1200), // $300-1500
-        category: 'Shopping',
-        date: new Date(currentYear, month, Math.floor(Math.random() * 28) + 1),
-        type: 'expense'
-      })
-    }
-  }
-  
-  // Healthcare expenses
-  for (let month = 0; month < 12; month++) {
-    if (Math.random() > 0.7) { // 30% chance per month
-      transactions.push({
-        id: `healthcare-${month}`,
-        accountId: Math.random() > 0.5 ? 'Credit Card' : 'Chase Checking',
-        description: ['Doctor Visit', 'Dentist', 'Pharmacy', 'Eye Exam', 'Physical Therapy'][Math.floor(Math.random() * 5)],
-        amount: -(25 + Math.random() * 200), // $25-225
-        category: 'Healthcare',
-        date: new Date(currentYear, month, Math.floor(Math.random() * 28) + 1),
-        type: 'expense'
-      })
-    }
-  }
-  
-  // Entertainment and travel
-  for (let month = 0; month < 12; month++) {
-    // Regular entertainment
-    if (Math.random() > 0.5) { // 50% chance
-      transactions.push({
-        id: `entertainment-${month}`,
-        accountId: Math.random() > 0.4 ? 'Credit Card' : 'Chase Checking',
-        description: ['Movie Theater', 'Concert Tickets', 'Sports Game', 'Museum', 'Bowling'][Math.floor(Math.random() * 5)],
-        amount: -(15 + Math.random() * 85), // $15-100
-        category: 'Entertainment',
-        date: new Date(currentYear, month, Math.floor(Math.random() * 28) + 1),
+        description: 'Valentine\'s Day Dinner',
+        amount: -(120 + Math.random() * 80),
+        category: 'Food & Dining',
+        date: new Date(year, month, 14),
         type: 'expense'
       })
     }
     
-    // Travel expenses (less frequent)
-    if (Math.random() > 0.9) { // 10% chance per month
-      transactions.push({
-        id: `travel-${month}`,
-        accountId: 'Credit Card',
-        description: ['Flight Booking', 'Hotel Stay', 'Airbnb', 'Rental Car', 'Trip Expenses'][Math.floor(Math.random() * 5)],
-        amount: -(200 + Math.random() * 800), // $200-1000
-        category: 'Travel',
-        date: new Date(currentYear, month, Math.floor(Math.random() * 28) + 1),
-        type: 'expense'
-      })
-    }
+    // Move to next month
+    currentDate.setMonth(currentDate.getMonth() + 1)
+    currentDate.setDate(1)
   }
   
-  // Add housing category for rent
-  transactions.forEach(t => {
-    if (t.description.includes('Rent')) {
-      t.category = 'Housing'
-    }
-  })
-  
-  return transactions.sort((a, b) => b.date.getTime() - a.date.getTime()) // Sort newest first
+  const sortedTransactions = transactions.sort((a, b) => b.date.getTime() - a.date.getTime())
+  console.log(`Generated ${sortedTransactions.length} transactions from July 2024 to August 2025`)
+  return sortedTransactions
 }
 
 const initialBudgets: Budget[] = [
