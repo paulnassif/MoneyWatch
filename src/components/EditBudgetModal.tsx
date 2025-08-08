@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from './Modal'
 import { useApp } from '../contexts/AppContext'
 import { Budget } from '../types'
 
-interface AddBudgetModalProps {
+interface EditBudgetModalProps {
   isOpen: boolean
   onClose: () => void
-  onAdd: (budget: Omit<Budget, 'id' | 'spent'>) => void
+  onEdit: (id: string, budget: Omit<Budget, 'id' | 'spent'>) => void
+  budget: Budget | null
 }
 
 
@@ -21,7 +22,7 @@ const colors = [
   { name: 'Cyan', value: '#06B6D4' }
 ]
 
-export default function AddBudgetModal({ isOpen, onClose, onAdd }: AddBudgetModalProps) {
+export default function EditBudgetModal({ isOpen, onClose, onEdit, budget }: EditBudgetModalProps) {
   const { categories } = useApp()
   const [formData, setFormData] = useState({
     category: categories[0] || '',
@@ -30,26 +31,31 @@ export default function AddBudgetModal({ isOpen, onClose, onAdd }: AddBudgetModa
     color: '#3B82F6'
   })
 
+  useEffect(() => {
+    if (budget) {
+      setFormData({
+        category: budget.category,
+        limit: budget.limit.toString(),
+        period: budget.period,
+        color: budget.color
+      })
+    }
+  }, [budget])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    const budget: Omit<Budget, 'id' | 'spent'> = {
+    if (!budget) return
+    
+    const updatedBudget: Omit<Budget, 'id' | 'spent'> = {
       category: formData.category,
       limit: Number(formData.limit),
       period: formData.period,
       color: formData.color
     }
 
-    onAdd(budget)
+    onEdit(budget.id, updatedBudget)
     onClose()
-    
-    // Reset form
-    setFormData({
-      category: categories[0] || '',
-      limit: '',
-      period: 'monthly',
-      color: '#3B82F6'
-    })
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -57,7 +63,7 @@ export default function AddBudgetModal({ isOpen, onClose, onAdd }: AddBudgetModa
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Budget">
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit Budget">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -138,7 +144,7 @@ export default function AddBudgetModal({ isOpen, onClose, onAdd }: AddBudgetModa
             type="submit"
             className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           >
-            Create Budget
+            Save Changes
           </button>
         </div>
       </form>

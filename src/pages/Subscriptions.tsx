@@ -1,75 +1,17 @@
 import { useState } from 'react'
 import { Plus, AlertCircle, Calendar, DollarSign, X } from 'lucide-react'
 import AddSubscriptionModal from '../components/AddSubscriptionModal'
-import { Subscription } from '../types'
-
-const mockSubscriptions: Subscription[] = [
-  { 
-    id: '1', 
-    name: 'Netflix', 
-    amount: 15.99, 
-    frequency: 'monthly' as const, 
-    nextBilling: new Date('2024-02-15'), 
-    status: 'active' as const, 
-    category: 'Entertainment',
-    icon: '🎬'
-  },
-  { 
-    id: '2', 
-    name: 'Spotify Premium', 
-    amount: 9.99, 
-    frequency: 'monthly' as const, 
-    nextBilling: new Date('2024-02-08'), 
-    status: 'active' as const, 
-    category: 'Entertainment',
-    icon: '🎵'
-  },
-  { 
-    id: '3', 
-    name: 'Amazon Prime', 
-    amount: 139.00, 
-    frequency: 'yearly' as const, 
-    nextBilling: new Date('2024-08-15'), 
-    status: 'active' as const, 
-    category: 'Shopping',
-    icon: '📦'
-  },
-  { 
-    id: '4', 
-    name: 'Adobe Creative Cloud', 
-    amount: 52.99, 
-    frequency: 'monthly' as const, 
-    nextBilling: new Date('2024-02-12'), 
-    status: 'active' as const, 
-    category: 'Software',
-    icon: '🎨'
-  },
-  { 
-    id: '5', 
-    name: 'Gym Membership', 
-    amount: 29.99, 
-    frequency: 'monthly' as const, 
-    nextBilling: new Date('2024-02-20'), 
-    status: 'active' as const, 
-    category: 'Health & Fitness',
-    icon: '💪'
-  },
-  { 
-    id: '6', 
-    name: 'Disney+', 
-    amount: 7.99, 
-    frequency: 'monthly' as const, 
-    nextBilling: new Date('2024-01-25'), 
-    status: 'cancelled' as const, 
-    category: 'Entertainment',
-    icon: '🏰'
-  }
-]
+import EditSubscriptionModal from '../components/EditSubscriptionModal'
+import CalendarModal from '../components/CalendarModal'
+import { useApp } from '../contexts/AppContext'
 
 export default function Subscriptions() {
-  const [subscriptions, setSubscriptions] = useState(mockSubscriptions)
+  const { subscriptions, addSubscription, updateSubscription, updateSubscriptionStatus } = useApp()
   const [filter, setFilter] = useState<'all' | 'active' | 'cancelled'>('all')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showCalendarModal, setShowCalendarModal] = useState(false)
+  const [editingSubscription, setEditingSubscription] = useState<any>(null)
   
   const filteredSubscriptions = subscriptions.filter(sub => {
     if (filter === 'all') return true
@@ -169,7 +111,10 @@ export default function Subscriptions() {
       <div className="card">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900">Upcoming Bills</h2>
-          <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+          <button 
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+            onClick={() => setShowCalendarModal(true)}
+          >
             View calendar
           </button>
         </div>
@@ -258,16 +203,34 @@ export default function Subscriptions() {
                 <div className="flex items-center gap-2">
                   {subscription.status === 'active' ? (
                     <>
-                      <button className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded">
+                      <button 
+                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+                        onClick={() => {
+                          setEditingSubscription(subscription)
+                          setShowEditModal(true)
+                        }}
+                      >
                         Edit
                       </button>
-                      <button className="px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded flex items-center gap-1">
+                      <button 
+                        className="px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded flex items-center gap-1"
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to cancel ${subscription.name}?`)) {
+                            updateSubscriptionStatus(subscription.id, 'cancelled')
+                          }
+                        }}
+                      >
                         <X className="w-3 h-3" />
                         Cancel
                       </button>
                     </>
                   ) : (
-                    <button className="px-3 py-1 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded">
+                    <button 
+                      className="px-3 py-1 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                      onClick={() => {
+                        updateSubscriptionStatus(subscription.id, 'active')
+                      }}
+                    >
                       Reactivate
                     </button>
                   )}
@@ -316,13 +279,23 @@ export default function Subscriptions() {
       <AddSubscriptionModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onAdd={(newSubscription) => {
-          const subscription: Subscription = {
-            ...newSubscription,
-            id: (subscriptions.length + 1).toString(),
-          }
-          setSubscriptions(prev => [...prev, subscription])
+        onAdd={addSubscription}
+      />
+
+      <EditSubscriptionModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setEditingSubscription(null)
         }}
+        onEdit={updateSubscription}
+        subscription={editingSubscription}
+      />
+
+      <CalendarModal
+        isOpen={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+        subscriptions={subscriptions}
       />
     </div>
   )

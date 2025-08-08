@@ -1,15 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from './Modal'
 import { useApp } from '../contexts/AppContext'
 import { Transaction } from '../types'
 
-interface AddTransactionModalProps {
+interface EditTransactionModalProps {
   isOpen: boolean
   onClose: () => void
-  onAdd: (transaction: Omit<Transaction, 'id'>) => void
+  onEdit: (id: string, transaction: Omit<Transaction, 'id'>) => void
+  transaction: Transaction | null
 }
 
-export default function AddTransactionModal({ isOpen, onClose, onAdd }: AddTransactionModalProps) {
+export default function EditTransactionModal({ isOpen, onClose, onEdit, transaction }: EditTransactionModalProps) {
   const { accounts, categories, addCategory } = useApp()
   const [showCustomCategory, setShowCustomCategory] = useState(false)
   const [customCategory, setCustomCategory] = useState('')
@@ -23,10 +24,26 @@ export default function AddTransactionModal({ isOpen, onClose, onAdd }: AddTrans
     merchant: ''
   })
 
+  useEffect(() => {
+    if (transaction) {
+      setFormData({
+        description: transaction.description,
+        amount: Math.abs(transaction.amount).toString(),
+        category: transaction.category,
+        date: transaction.date.toISOString().split('T')[0],
+        type: transaction.type,
+        accountId: transaction.accountId,
+        merchant: transaction.merchant || ''
+      })
+    }
+  }, [transaction])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    const transaction: Omit<Transaction, 'id'> = {
+    if (!transaction) return
+    
+    const updatedTransaction: Omit<Transaction, 'id'> = {
       accountId: formData.accountId,
       amount: formData.type === 'expense' ? -Math.abs(Number(formData.amount)) : Math.abs(Number(formData.amount)),
       description: formData.description,
@@ -36,19 +53,8 @@ export default function AddTransactionModal({ isOpen, onClose, onAdd }: AddTrans
       merchant: formData.merchant || undefined
     }
 
-    onAdd(transaction)
+    onEdit(transaction.id, updatedTransaction)
     onClose()
-    
-    // Reset form
-    setFormData({
-      description: '',
-      amount: '',
-      category: categories[0] || '',
-      date: new Date().toISOString().split('T')[0],
-      type: 'expense',
-      accountId: accounts[0]?.name || '',
-      merchant: ''
-    })
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -65,7 +71,7 @@ export default function AddTransactionModal({ isOpen, onClose, onAdd }: AddTrans
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Transaction">
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit Transaction">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -223,7 +229,7 @@ export default function AddTransactionModal({ isOpen, onClose, onAdd }: AddTrans
             type="submit"
             className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           >
-            Add Transaction
+            Save Changes
           </button>
         </div>
       </form>

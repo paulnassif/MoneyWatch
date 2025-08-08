@@ -1,20 +1,14 @@
 import { useState } from 'react'
 import { Plus, AlertTriangle, TrendingUp, Target } from 'lucide-react'
 import AddBudgetModal from '../components/AddBudgetModal'
-import { Budget } from '../types'
-
-const mockBudgets: Budget[] = [
-  { id: '1', category: 'Food & Dining', limit: 600, spent: 487.23, color: '#3B82F6', period: 'monthly' },
-  { id: '2', category: 'Transportation', limit: 200, spent: 156.80, color: '#10B981', period: 'monthly' },
-  { id: '3', category: 'Entertainment', limit: 150, spent: 203.45, color: '#F59E0B', period: 'monthly' },
-  { id: '4', category: 'Shopping', limit: 300, spent: 189.99, color: '#EF4444', period: 'monthly' },
-  { id: '5', category: 'Utilities', limit: 250, spent: 234.67, color: '#8B5CF6', period: 'monthly' },
-  { id: '6', category: 'Healthcare', limit: 100, spent: 45.00, color: '#06B6D4', period: 'monthly' }
-]
+import EditBudgetModal from '../components/EditBudgetModal'
+import { useApp } from '../contexts/AppContext'
 
 export default function Budgets() {
-  const [budgets, setBudgets] = useState(mockBudgets)
+  const { budgets, addBudget, updateBudget, deleteBudget } = useApp()
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingBudget, setEditingBudget] = useState<any>(null)
   
   const totalBudgeted = budgets.reduce((sum, budget) => sum + budget.limit, 0)
   const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0)
@@ -154,10 +148,23 @@ export default function Budgets() {
                 </span>
                 
                 <div className="flex items-center gap-4">
-                  <button className="text-primary-600 hover:text-primary-700 font-medium">
+                  <button 
+                    className="text-primary-600 hover:text-primary-700 font-medium"
+                    onClick={() => {
+                      setEditingBudget(budget)
+                      setShowEditModal(true)
+                    }}
+                  >
                     Edit
                   </button>
-                  <button className="text-gray-400 hover:text-gray-600">
+                  <button 
+                    className="text-gray-400 hover:text-gray-600"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this budget?')) {
+                        deleteBudget(budget.id)
+                      }
+                    }}
+                  >
                     Delete
                   </button>
                 </div>
@@ -208,14 +215,17 @@ export default function Budgets() {
       <AddBudgetModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onAdd={(newBudget) => {
-          const budget: Budget = {
-            ...newBudget,
-            id: (budgets.length + 1).toString(),
-            spent: 0
-          }
-          setBudgets(prev => [...prev, budget])
+        onAdd={addBudget}
+      />
+
+      <EditBudgetModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setEditingBudget(null)
         }}
+        onEdit={updateBudget}
+        budget={editingBudget}
       />
     </div>
   )

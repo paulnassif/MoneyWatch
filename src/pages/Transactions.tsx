@@ -1,27 +1,17 @@
 import { useState } from 'react'
 import { Search, Filter, Download, Plus, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import AddTransactionModal from '../components/AddTransactionModal'
-import { Transaction } from '../types'
-
-const mockTransactions: Transaction[] = [
-  { id: '1', accountId: 'Chase Checking', description: 'Starbucks Coffee', amount: -5.47, category: 'Food & Dining', date: new Date('2024-01-15'), type: 'expense' },
-  { id: '2', accountId: 'Chase Checking', description: 'Salary Deposit', amount: 3500.00, category: 'Income', date: new Date('2024-01-15'), type: 'income' },
-  { id: '3', accountId: 'Credit Card', description: 'Netflix Subscription', amount: -15.99, category: 'Entertainment', date: new Date('2024-01-14'), type: 'expense' },
-  { id: '4', accountId: 'Chase Checking', description: 'Gas Station', amount: -45.20, category: 'Transportation', date: new Date('2024-01-14'), type: 'expense' },
-  { id: '5', accountId: 'Credit Card', description: 'Grocery Store', amount: -127.84, category: 'Food & Dining', date: new Date('2024-01-13'), type: 'expense' },
-  { id: '6', accountId: 'Chase Checking', description: 'Electric Bill', amount: -89.43, category: 'Utilities', date: new Date('2024-01-12'), type: 'expense' },
-  { id: '7', accountId: 'Credit Card', description: 'Amazon Purchase', amount: -34.99, category: 'Shopping', date: new Date('2024-01-12'), type: 'expense' },
-  { id: '8', accountId: 'Chase Checking', description: 'Freelance Payment', amount: 800.00, category: 'Income', date: new Date('2024-01-11'), type: 'income' }
-]
-
-const categories = ['All', 'Food & Dining', 'Income', 'Entertainment', 'Transportation', 'Shopping', 'Utilities']
+import EditTransactionModal from '../components/EditTransactionModal'
+import { useApp } from '../contexts/AppContext'
 
 export default function Transactions() {
+  const { transactions, addTransaction, updateTransaction, categories } = useApp()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [showFilters, setShowFilters] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [transactions, setTransactions] = useState(mockTransactions)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState<any>(null)
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -43,7 +33,24 @@ export default function Transactions() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
         <div className="flex items-center gap-3">
-          <button className="btn-secondary flex items-center gap-2">
+          <button 
+            className="btn-secondary flex items-center gap-2"
+            onClick={() => {
+              const csvContent = "data:text/csv;charset=utf-8," + 
+                "Date,Description,Category,Account,Amount,Type\n" +
+                filteredTransactions.map(t => 
+                  `${t.date.toLocaleDateString()},"${t.description}","${t.category}","${t.accountId}",${t.amount},"${t.type}"`
+                ).join("\n");
+              
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement("a");
+              link.setAttribute("href", encodedUri);
+              link.setAttribute("download", `transactions_${new Date().toISOString().split('T')[0]}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+          >
             <Download className="w-4 h-4" />
             Export
           </button>
@@ -128,6 +135,17 @@ export default function Transactions() {
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <div className="flex flex-wrap gap-2">
               <span className="text-sm font-medium text-gray-700 mr-2">Category:</span>
+              <button
+                key="All"
+                onClick={() => setSelectedCategory('All')}
+                className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                  selectedCategory === 'All'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                All
+              </button>
               {categories.map((category) => (
                 <button
                   key={category}
@@ -195,7 +213,13 @@ export default function Transactions() {
               </div>
               
               <div className="hidden md:flex justify-end">
-                <button className="text-gray-400 hover:text-gray-600 text-sm">
+                <button 
+                  className="text-gray-400 hover:text-gray-600 text-sm"
+                  onClick={() => {
+                    setEditingTransaction(transaction)
+                    setShowEditModal(true)
+                  }}
+                >
                   Edit
                 </button>
               </div>
@@ -213,13 +237,17 @@ export default function Transactions() {
       <AddTransactionModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onAdd={(newTransaction) => {
-          const transaction: Transaction = {
-            ...newTransaction,
-            id: (transactions.length + 1).toString(),
-          }
-          setTransactions(prev => [transaction, ...prev])
+        onAdd={addTransaction}
+      />
+
+      <EditTransactionModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setEditingTransaction(null)
         }}
+        onEdit={updateTransaction}
+        transaction={editingTransaction}
       />
     </div>
   )
