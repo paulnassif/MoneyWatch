@@ -8,7 +8,8 @@ import {
   TrendingUp,
   Menu,
   Bell,
-  User
+  User,
+  BookOpen
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Budgets', href: '/budgets', icon: Target },
   { name: 'Subscriptions', href: '/subscriptions', icon: RefreshCcw },
   { name: 'Credit Score', href: '/credit-score', icon: TrendingUp },
+  { name: 'Data Dictionary', href: '/data-dictionary', icon: BookOpen },
 ]
 
 export default function Layout({ children }: LayoutProps) {

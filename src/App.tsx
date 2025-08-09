@@ -7,6 +7,7 @@ import Transactions from './pages/Transactions'
 import Budgets from './pages/Budgets'
 import Subscriptions from './pages/Subscriptions'
 import CreditScore from './pages/CreditScore'
+import DataDictionary from './pages/DataDictionary'
 
 const queryClient = new QueryClient()
 
@@ -22,6 +23,7 @@ function App() {
               <Route path="/budgets" element={<Budgets />} />
               <Route path="/subscriptions" element={<Subscriptions />} />
               <Route path="/credit-score" element={<CreditScore />} />
+              <Route path="/data-dictionary" element={<DataDictionary />} />
             </Routes>
           </Layout>
         </Router>

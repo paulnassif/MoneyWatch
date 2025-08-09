@@ -5,19 +5,49 @@ import EditTransactionModal from '../components/EditTransactionModal'
 import { useApp } from '../contexts/AppContext'
 
 export default function Transactions() {
-  const { transactions, addTransaction, updateTransaction, categories } = useApp()
+  const { transactions, addTransaction, updateTransaction, categories, accounts } = useApp()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
+  const [selectedAccount, setSelectedAccount] = useState('All')
+  const [transactionType, setTransactionType] = useState('All') // All, Income, Expense
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [amountMin, setAmountMin] = useState('')
+  const [amountMax, setAmountMax] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<any>(null)
 
   const filteredTransactions = transactions.filter(transaction => {
+    // Search filter
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.category.toLowerCase().includes(searchTerm.toLowerCase())
+                         transaction.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         transaction.accountId.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    // Category filter
     const matchesCategory = selectedCategory === 'All' || transaction.category === selectedCategory
-    return matchesSearch && matchesCategory
+    
+    // Account filter
+    const matchesAccount = selectedAccount === 'All' || transaction.accountId === selectedAccount
+    
+    // Transaction type filter
+    const matchesType = transactionType === 'All' || 
+                       (transactionType === 'Income' && transaction.amount > 0) ||
+                       (transactionType === 'Expense' && transaction.amount < 0)
+    
+    // Date range filter
+    const transactionDate = new Date(transaction.date)
+    const matchesDateFrom = !dateFrom || transactionDate >= new Date(dateFrom)
+    const matchesDateTo = !dateTo || transactionDate <= new Date(dateTo)
+    
+    // Amount range filter
+    const absAmount = Math.abs(transaction.amount)
+    const matchesAmountMin = !amountMin || absAmount >= parseFloat(amountMin)
+    const matchesAmountMax = !amountMax || absAmount <= parseFloat(amountMax)
+    
+    return matchesSearch && matchesCategory && matchesAccount && matchesType && 
+           matchesDateFrom && matchesDateTo && matchesAmountMin && matchesAmountMax
   })
 
   const totalIncome = transactions
@@ -121,44 +151,154 @@ export default function Transactions() {
           </div>
           
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Filter className="w-4 h-4" />
-              Filters
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Filter className="w-4 h-4" />
+                Filters
+              </button>
+              <span className="text-sm text-gray-500">
+                {filteredTransactions.length} of {transactions.length} transactions
+              </span>
+            </div>
           </div>
         </div>
 
         {showFilters && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm font-medium text-gray-700 mr-2">Category:</span>
-              <button
-                key="All"
-                onClick={() => setSelectedCategory('All')}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                  selectedCategory === 'All'
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                All
-              </button>
-              {categories.map((category) => (
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4">
+            {/* Category Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <div className="flex flex-wrap gap-2">
                 <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => setSelectedCategory('All')}
                   className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                    selectedCategory === category
+                    selectedCategory === 'All'
                       ? 'bg-primary-600 text-white'
                       : 'bg-white text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  {category}
+                  All
                 </button>
-              ))}
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                      selectedCategory === category
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Account and Type Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
+                <select
+                  value={selectedAccount}
+                  onChange={(e) => setSelectedAccount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="All">All Accounts</option>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.name}>
+                      {account.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select
+                  value={transactionType}
+                  onChange={(e) => setTransactionType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="All">All Types</option>
+                  <option value="Income">Income Only</option>
+                  <option value="Expense">Expenses Only</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Date Range Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            </div>
+
+            {/* Amount Range Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Min Amount ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amountMin}
+                  onChange={(e) => setAmountMin(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Max Amount ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amountMax}
+                  onChange={(e) => setAmountMax(e.target.value)}
+                  placeholder="No limit"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setSelectedCategory('All')
+                  setSelectedAccount('All')
+                  setTransactionType('All')
+                  setDateFrom('')
+                  setDateTo('')
+                  setAmountMin('')
+                  setAmountMax('')
+                  setSearchTerm('')
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                Clear All Filters
+              </button>
             </div>
           </div>
         )}

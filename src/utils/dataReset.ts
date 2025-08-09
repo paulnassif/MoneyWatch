@@ -32,8 +32,17 @@ export const hasOldData = () => {
     if (!transactions) return true // No data means they need the demo data
     
     const parsed = JSON.parse(transactions)
-    // If there are less than 200 transactions, it's probably old data
-    return !parsed || !Array.isArray(parsed) || parsed.length < 200
+    if (!parsed || !Array.isArray(parsed)) return true
+    
+    // Check if any transactions are after August 7, 2025
+    const maxDate = new Date(2025, 7, 7) // August 7, 2025
+    const hasInvalidDates = parsed.some(t => {
+      const transactionDate = new Date(t.date)
+      return transactionDate > maxDate
+    })
+    
+    // If there are transactions after Aug 7, 2025 OR less than 200 transactions, it's old data
+    return hasInvalidDates || parsed.length < 200
   } catch (error) {
     console.error('Error checking old data:', error)
     return true // If there's an error, offer to reset
